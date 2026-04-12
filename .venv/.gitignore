@@ -1,0 +1,11 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+.venv/
+
+# Data
+data/
+*.csv
+*.parquet
+.DS_Store

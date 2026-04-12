@@ -1,0 +1,19 @@
+variable_name,selected_series_id,title,source_frequency_short,seasonal_adjustment_short
+capacity_utilization,TCU,Capacity Utilization: Total Index,M,SA
+cpi_all_items,CPIAUCSL,Consumer Price Index for All Urban Consumers: All Items in U.S. City Average,M,SA
+fed_funds_rate,FEDFUNDS,Federal Funds Effective Rate,M,NSA
+financial_conditions,NFCI,Chicago Fed National Financial Conditions Index,W,NSA
+housing_starts,HOUST,New Privately-Owned Housing Units Started: Total Units,M,SAAR
+industrial_production,INDPRO,Industrial Production: Total Index,M,SA
+inflation_expectations_umich,MICH,University of Michigan: Inflation Expectation,M,NSA
+money_stock_m2,M2SL,M2,M,SA
+natural_rate_unemployment,NROU,Noncyclical Rate of Unemployment,Q,NSA
+payroll_employment,PAYEMS,"All Employees, Total Nonfarm",M,SA
+producer_price_index,PPIACO,Producer Price Index by Commodity: All Commodities,M,NSA
+real_disposable_personal_income,DSPIC96,Real Disposable Personal Income,M,SAAR
+real_personal_income_less_transfers,W875RX1,Real personal income excluding current transfer receipts,M,SAAR
+retail_sales,RSAFS,Advance Retail Sales: Retail Trade and Food Services,M,SA
+treasury_10y,GS10,"Market Yield on U.S. Treasury Securities at 10-Year Constant Maturity, Quoted on an Investment Basis",M,NSA
+treasury_3m,TB3MS,"3-Month Treasury Bill Secondary Market Rate, Discount Basis",M,NSA
+unemployment_rate,UNRATE,Unemployment Rate,M,SA
+wti_oil_price,WTISPLC,Spot Crude Oil Price: West Texas Intermediate (WTI),M,NSA
