@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 """Pull monthly macro data from FRED with fredapi and export merged raw CSV."""
 
-from __future__ import annotations
-
 import os
-import re
 from collections.abc import Mapping
 from pathlib import Path
 

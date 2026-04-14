@@ -1,19 +1,17 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
+@dataclass
 class VariableSpec:
     name: str
     candidates: list[str]
     prefer_seasonally_adjusted: bool = True
     interpolation_method: str | None = None
     aggregation_method: str = "last"
+    transformation: str | None = None
 
 
 VARIABLE_SPECS: list[VariableSpec] = [
-    VariableSpec("cpi_all_items", ["CPIAUCSL"], True),
+    VariableSpec("cpi_all_items", ["CPIAUCSL"], True, transformation="log_diff_12"),
     VariableSpec("unemployment_rate", ["UNRATE"], True, aggregation_method="mean"),
     VariableSpec("natural_rate_unemployment", ["NROU"], False, interpolation_method="linear"),
     VariableSpec("inflation_expectations_umich", ["MICH"], False, aggregation_method="mean"),

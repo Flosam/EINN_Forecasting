@@ -1,5 +1,10 @@
+from src.pull_fred_data import load_fred_data
+from src.transformations import transform_data
+
+
 def main():
-    print("Hello from econ622-fred!")
+    load_fred_data()
+    transform_data()
 
 
 if __name__ == "__main__":
