@@ -7,4 +7,5 @@ dependencies = [
     "fredapi>=0.5.2",
     "pandas==3.0.2",
     "python-dotenv>=1.2.2",
+    "statsmodels>=0.14.6",
 ]
