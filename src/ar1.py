@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+from statistics import NormalDist
+
 
 class AR1Model:
     # simple AR(1) model with optional intercept, fitted by OLS regression
@@ -22,9 +24,10 @@ class AR1Model:
     # fit from data series, using OLS regression of y_t on y_{t-1} with intercept
     def fit(self, series: pd.Series):
         # OLS regression of y_t on y_{t-1} with intercept
-        y = series.iloc[1:]
-        X = series.iloc[:-1]
-        X = sm.add_constant(X)
+        data = series.values
+        y = data[1:]
+        X = data[:-1].reshape(-1,1)
+        X = np.column_stack([np.ones(len(X)), X])  # add intercept
         model = sm.OLS(y, X).fit()
         self.beta, self.phi = model.params
         self.sigma2 = model.mse_resid
@@ -33,7 +36,7 @@ class AR1Model:
         return self
     
     # forecast future values with confidence intervals. Returns a DataFrame with columns "forecast", "lower", "upper"
-    def forecast(self, horizon: int, z:float = 1.96) -> pd.Series:
+    def forecast(self, horizon: int, alpha: float = 0.05) -> pd.Series:
         if self.phi is None or self.beta is None:
             raise ValueError("Model must be fitted before prediction.")
         
@@ -46,6 +49,7 @@ class AR1Model:
             last_value = next_value
 
             # confidence bands
+            z = NormalDist().inv_cdf(1 - alpha / 2)
             if abs(self.phi) < 1:
                 var_h = self.sigma2 * (1 - self.phi**(2*h)) / (1 - self.phi**2)
             else:

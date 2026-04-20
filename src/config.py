@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+# Data specification
 @dataclass
 class VariableSpec:
     name: str
@@ -31,3 +32,8 @@ VARIABLE_SPECS: list[VariableSpec] = [
     VariableSpec("treasury_3m", ["TB3MS"], False, aggregation_method="mean"),
 ]
 
+# forecast specification
+TARGET_VARIABLE = "cpi_all_items"
+EXPECTATIONS_VARIABLE = "inflation_expectations_umich"
+GAP_VARIABLES = ["unemployment_rate", "natural_rate_unemployment"]
+HORIZONS = [1, 3, 6, 12]

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from statistics import NormalDist
 
 class VAR:
     lags: int
@@ -34,8 +35,10 @@ class VAR:
 
         return self
     
-    def forecast(self, horizon: int, z:float = 1.96) -> pd.DataFrame:
-
+    def forecast(self, horizon: int, alpha: float = 0.05) -> pd.DataFrame:
+        if self.coefs is None or self.sigma_u is None:
+            raise ValueError("Model must be fitted before prediction.")
+        
         n = len(self.var_names)
         forecasts = np.zeros((horizon, n))
 
@@ -61,6 +64,7 @@ class VAR:
         idx = pd.RangeIndex(start=last_index + 1, stop=last_index + 1 + horizon)
 
         # build dataframe with forecasts and cofidence intervals
+        z = NormalDist().inv_cdf(1 - alpha / 2)
         output = {}
         for i, col in enumerate(self.var_names):
             std_h = np.array([np.sqrt(mse_matrices[h][i, i]) for h in range(horizon)])
@@ -90,6 +94,7 @@ class VAR:
             F[n:, :-n] = np.eye(n * (p - 1))
 
         return F
+
 
     def _forecast_mse(self, horizon: int) -> list[np.ndarray]:
         n = len(self.var_names)
