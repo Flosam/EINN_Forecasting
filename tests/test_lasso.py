@@ -40,6 +40,13 @@ def _make_lasso_lag2_correlated_data(n: int = 320, seed: int = 77) -> pd.DataFra
     return pd.DataFrame({"y": y, "x1": x1, "x2": x2, "x3": x3}, index=pd.RangeIndex(n))
 
 
+def _make_lasso_data_datetime(n: int = 220, seed: int = 321) -> pd.DataFrame:
+    data = _make_lasso_data(n=n, seed=seed)
+    idx = pd.date_range("2000-01-31", periods=n, freq="ME")
+    data.index = idx
+    return data
+
+
 def test_fit_produces_finite_parameters_and_residuals():
     data = _make_lasso_data()
     model = Lasso(lags=1, horizon=1, lmbda=0.05, max_iter=2000, tol=1e-7).fit(data, target="y")
@@ -131,6 +138,13 @@ def test_fit_rejects_too_short_series_for_requested_lags():
     raise AssertionError("Expected ValueError for data too short for requested lags")
 
 
+def test_forecast_uses_month_end_index_for_datetime_data():
+    data = _make_lasso_data_datetime()
+    model = Lasso(lags=1, horizon=3, lmbda=0.05, max_iter=2000, tol=1e-7).fit(data, target="y")
+    forecast = model.forecast(alpha=0.1, n_bootstrap=150)
+    assert forecast.index.tolist() == [pd.Timestamp("2018-07-31")]
+
+
 if __name__ == "__main__":
     test_fit_produces_finite_parameters_and_residuals()
     test_forecast_returns_expected_shape_and_ci_ordering()
@@ -139,4 +153,5 @@ if __name__ == "__main__":
     test_bootstrap_forecast_is_reproducible_with_fixed_seed()
     test_forecast_before_fit_raises_value_error()
     test_fit_rejects_too_short_series_for_requested_lags()
+    test_forecast_uses_month_end_index_for_datetime_data()
     print("\n✅ All Lasso tests passed!")

@@ -40,6 +40,12 @@ def _make_persistent_ar1_series(
     return pd.Series(y, index=pd.RangeIndex(n))
 
 
+def _make_ar1_series_datetime(n: int = 120, seed: int = 123) -> pd.Series:
+    series = _make_ar1_series(n=n, seed=seed)
+    idx = pd.date_range("2010-01-31", periods=n, freq="ME")
+    return pd.Series(series.to_numpy(), index=idx)
+
+
 def test_fit_recovers_ar1_parameters_on_synthetic_data():
     series = _make_ar1_series()
     model = AR1Model().fit(series)
@@ -122,6 +128,14 @@ def test_zero_horizon_forecast_returns_empty_dataframe():
     assert forecast.empty
 
 
+def test_forecast_uses_month_end_index_for_datetime_series():
+    series = _make_ar1_series_datetime()
+    model = AR1Model().fit(series)
+    forecast = model.forecast(horizon=3)
+    expected = pd.to_datetime(["2020-01-31", "2020-02-29", "2020-03-31"])
+    assert forecast.index.tolist() == expected.tolist()
+
+
 if __name__ == "__main__":
     test_fit_recovers_ar1_parameters_on_synthetic_data()
     test_forecast_returns_expected_shape_and_ci_ordering()
@@ -129,4 +143,5 @@ if __name__ == "__main__":
     test_lower_alpha_produces_wider_confidence_intervals()
     test_forecast_before_fit_raises_value_error()
     test_zero_horizon_forecast_returns_empty_dataframe()
+    test_forecast_uses_month_end_index_for_datetime_series()
     print("\n✅ All AR1 tests passed!")

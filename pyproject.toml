@@ -7,7 +7,9 @@ dependencies = [
     "flax>=0.12.6",
     "fredapi>=0.5.2",
     "jax>=0.10.0",
+    "kaleido>=0.2.1",
     "pandas==3.0.2",
+    "plotly>=5.0.0",
     "python-dotenv>=1.2.2",
     "statsmodels>=0.14.6",
 ]
