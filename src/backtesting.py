@@ -1019,11 +1019,13 @@ def save_backtest_outputs(
     out_dir: str = "data/processed",
     file_prefix: str = "backtest",
 ) -> None:
-    # For backtest results, save in results subfolder
+    # Organize results by type (backtest vs validation)
     if file_prefix == "backtest":
         results_dir = Path(out_dir) / "results"
+    elif file_prefix == "validation":
+        results_dir = Path(out_dir) / "results" / "validation"
     else:
-        # For validation, keep in main processed folder
+        # For other types, keep in main processed folder
         results_dir = Path(out_dir)
     
     results_dir.mkdir(parents=True, exist_ok=True)

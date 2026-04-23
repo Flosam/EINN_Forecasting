@@ -59,7 +59,13 @@ def main() -> None:
     )
     
     # Determine actual output directory
-    actual_output_dir = RESULTS_DIR if output_prefix == "backtest" else OUTPUT_DIR
+    if output_prefix == "backtest":
+        actual_output_dir = RESULTS_DIR
+    elif output_prefix == "validation":
+        actual_output_dir = f"{RESULTS_DIR}/validation"
+    else:
+        actual_output_dir = OUTPUT_DIR
+    
     print(
         f"Saved outputs to {actual_output_dir} with prefix '{output_prefix}': {len(predictions)} predictions"
     )

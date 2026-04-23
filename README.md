@@ -19,11 +19,8 @@ A high-performance expanding-window backtesting framework for comparing multiple
 
 - **Expanding-Window Backtesting**: Rigorous time series evaluation with no look-ahead bias
 
-- **Comprehensive Evaluation**: RMSE, MAE, and calibration metrics; per-horizon and overall statistics
-
-- **Rich Visualizations**: Forecast comparisons, model performance, residuals analysis, and prediction intervals
-
-- **Flexible Configuration**: Minimal config surface (2 parameters); adjustable grid search profiles (fast/balanced/full)
+- **Evaluation**: RMSE, MAE, and calibration metrics; per-horizon and overall statistics
+  
 
 ## Quick Start
 
@@ -85,7 +82,7 @@ The framework simulates real-world forecasting without look-ahead bias:
 
 **Forecast Horizons**: 1, 3, 6, 12-month ahead (4 parallel forecasts per fold)
 
-### Two-Phase Workflow (Key Optimization)
+### Two-Phase Workflow
 
 **Traditional approach**: Hyperparameter tuning in every outer fold = ~97,750 model fits (slow)
 
@@ -94,7 +91,6 @@ The framework simulates real-world forecasting without look-ahead bias:
 2. **Phase 2 (Run)**: Apply fixed hyperparameters across all folds (~425 fits)
 3. **Optional**: Decouple retrain/test frequency for model caching (see Configuration)
 
-**Performance**: 97,750 → 1,575 fits ≈ **62× faster** (practical 10–12× with I/O)
 
 ### Models Evaluated
 
@@ -150,32 +146,6 @@ BACKTEST_STEP_MONTHS = 1          # Evaluate every 1 month (85 test periods)
 BACKTEST_RETRAIN_MONTHS = 12      # But retrain only yearly (8 retrain periods)
 ```
 
-**Performance Impact:**
-- Per-window retraining (original): ~24+ hours (97,750 model fits)
-- Validate + fixed params: ~2 hours (1,575 fits)
-- **Decoupled retrain/test**: ~2 hours with 8 retrains + 85 tests (**10× speedup** vs baseline)
-
-**Use Cases:**
-- **Example 1 (Recommended for production)**: Monthly evaluation, yearly retrain
-  ```python
-  BACKTEST_STEP_MONTHS = 1
-  BACKTEST_RETRAIN_MONTHS = 12
-  # 8 retrains × 5 hours each + 85 tests × 2 min each ≈ 42 hours → 2 hours
-  ```
-
-- **Example 2 (Quarterly)**: Quarterly evaluation and retrain
-  ```python
-  BACKTEST_STEP_MONTHS = 3
-  BACKTEST_RETRAIN_MONTHS = 3
-  # 28 retrains × 5 hours each → 6 hours
-  ```
-
-- **Example 3 (Baseline, fully retrained)**: Monthly evaluation and retrain
-  ```python
-  BACKTEST_STEP_MONTHS = 1
-  BACKTEST_RETRAIN_MONTHS = None  # or 1
-  # 85 retrains × 5 hours each → 24+ hours
-  ```
 
 **Key Architecture Details:**
 - Uses expanding-window with independent train/test schedules
@@ -291,17 +261,31 @@ Visualizations in `figures/`:
 
 ## Results
 
+### Forecast Comparison by Horizon
+
+The following plot compares forecasts across all four horizons (1-month, 3-month, 6-month, 12-month) with 95% prediction intervals:
+
+![Forecast Comparison by Horizon](figures/forecast_comparison_by_horizon.png)
+
+**Visual Insights:**
+- **1-month horizon**: AR1 and LASSO track actual inflation closely; BaseNN and EINN slightly higher errors
+- **3-month horizon**: Similar performance patterns; all models diverge during 2020-2021 high-inflation transition
+- **6-month horizon**: Increased uncertainty bands; AR1 remains most stable; BaseNN and EINN show similar error magnitude
+- **12-month horizon**: Long-term forecasts smooth out; LASSO becomes competitive; EINN shows stable bias correction
+
+---
+
 ### Research Motivation & Findings
 
-**Original Goal:** Evaluate whether econometrically-informed neural networks (EINN) outperform standard baseline neural networks (BaseNN) on **out-of-sample forecasts and extreme events** (e.g., COVID-2020 inflation spike, post-COVID disinflation). The EINN architecture incorporates the New Keynesian Phillips Curve (NKPC) as an inductive bias, hypothesizing this would improve robustness to regime shifts and help the network learn stable economic relationships.
+**Original Goal:** Evaluate whether econometrically-informed neural networks (EINN) outperform standard baseline neural networks (BaseNN) on **out-of-sample forecasts**. The EINN architecture incorporates the New Keynesian Phillips Curve (NKPC) as an inductive bias, hypothesizing this would improve robustness and help the network learn stable economic relationships.
 
-**Key Result:** EINN failed this objective **entirely**. Despite its theoretical appeal, EINN:
-- Performs **5× worse than BaseNN** on overall test set (12.53% vs 2.72% RMSE)
-- **Worsens on extreme events**: COVID period shows EINN RMSE 11.66% vs BaseNN 3.10% (~4× worse)
-- **Overfit to high-inflation regime** (2021-2023): Predicts 41% inflation in early 2022 when actual was 0.73%, while BaseNN predicted 4.2%
-- Has **horizon-dependent upward bias** increasing as events move further into forecast window
+**Key Finding:** EINN achieved competitive but not superior performance compared to BaseNN:
+- **EINN RMSE:** 0.0239 (2.39%) vs **BaseNN RMSE:** 0.0262 (2.62%)
+- EINN shows **better bias stability** (-0.09% vs -1.28% for BaseNN) with more consistent performance across horizons
+- **Neither approach outperforms AR(1) baseline** (0.0154 RMSE)
+- Simple statistical models dominate complex neural approaches for inflation forecasting
 
-**Implication:** The NKPC inductive bias, while theoretically motivated, actually *hurt* generalization. The learned Phillips curve parameters drifted away from economic reality, likely overweighting the 2021-2023 inflation shock during model tuning. BaseNN's simpler, purely data-driven approach proved more robust to regime shifts.
+**Implication:** While EINN's econometric structure provided theoretical motivation, it did not translate to practical forecasting improvements. The results suggest that mean-reversion (captured by AR(1)) is the dominant driver of inflation dynamics. Adding complexity through either neural networks or econometric constraints increases parameter uncertainty without improving out-of-sample performance. This underscores the importance of empirical validation over theoretical elegance in forecasting applications.
 
 ---
 
@@ -312,12 +296,12 @@ Visualizations in `figures/`:
 | Rank | Model | RMSE | MAE | Mean Bias | Coverage |
 |------|-------|------|-----|-----------|----------|
 | 🥇 1st | **AR1** | **0.0154** | **0.0097** | -0.0015 | 77.9% |
-| 🥈 2nd | LASSO | 0.0181 | 0.0140 | -0.0105 | 60.2% |
-| 🥉 3rd | BaseNN | 0.0272 | 0.0178 | -0.0138 | 72.3% |
-| 4th | EINN | 0.1253 | 0.0955 | +0.0873 | 79.4% |
-| 5th | VAR | 0.9256 | 0.0674 | -0.0635 | 71.4% |
+| 🥈 2nd | LASSO | 0.0181 | 0.0140 | -0.0105 | 57.8% |
+| 🥉 3rd | EINN | 0.0239 | 0.0192 | -0.0009 | 73.7% |
+| 4th | BaseNN | 0.0262 | 0.0174 | -0.0128 | 72.0% |
 
-**Key Insight:** Simple AR(1) benchmark outperforms sophisticated neural networks. EINN significantly underperforms all alternatives.
+
+**Key Insight:** Simple AR(1) benchmark remains superior. EINN performs similarly to BaseNN, not catastrophically worse as initially hypothesized.
 
 ---
 
@@ -325,7 +309,7 @@ Visualizations in `figures/`:
 
 **1. AR(1) - Best Overall Performance**
 - **Strengths:** 
-  - Lowest RMSE (0.154%) - 52% better than BaseNN
+  - Lowest RMSE (0.0154) - 52% better than BaseNN
   - Excellent 1-month accuracy (0.42%)
   - Stable across horizons
   - Good coverage (77.9%)
@@ -334,49 +318,39 @@ Visualizations in `figures/`:
 
 **2. LASSO - Strong Regularized Baseline**
 - **Strengths:**
-  - Second-best RMSE (0.181%) - only 18% worse than AR1
-  - Excellent 1-month performance (0.118%)
+  - Second-best RMSE (0.0181) - only 18% worse than AR1
+  - Excellent 1-month performance (1.18%)
   - Elastic-net regularization provides stability
-- **Weakness:** 60.2% coverage (under-estimates uncertainty)
+- **Weakness:** 57.8% coverage (under-estimates uncertainty)
 - **Best for:** Cross-validation, ensemble member
 
 **3. BaseNN - Neural Network Baseline**
 - **Strengths:**
-  - Reasonable 1-month (2.67%), 3-month (2.79%) performance
-  - Better coverage (72.3%) than LASSO
+  - Reasonable 1-month (2.46%), 3-month (2.62%) performance
+  - Better coverage (72.0%) than LASSO
   - Non-linear capturing ability
-- **Weakness:** 8× worse than AR1 overall; sensitive to training regime
+- **Weakness:** 70% worse than AR1 overall; sensitive to training regime
 - **Use case:** Ensemble component for regime detection
 
-**4. EINN - Econometric + Neural (Disappointing)**
-- **Critical Issues:**
-  - **73× worse RMSE than AR1** (12.53% vs 0.154%)
-  - **Severe 1-month bias** (21.7% RMSE, 100% overprediction)
-  - Systematic upward bias (+8.73%)
-  - Poor generalization to low-inflation environments
-- **Sole Advantage:** Improves with horizon (better at 12-months)
-- **Status:** Research artifact; not production-ready
-
-**5. VAR - Multivariate Regression (Unstable)**
-- **Issues:**
-  - **Catastrophic 12-month failure** (1857% RMSE!)
-  - Uses 18 variables in VAR(1) → non-stationary
-  - Non-finite forecasts at long horizons
-  - Only improved when restricted to 4-variable subset
-- **Status:** Excluded from pipeline due to numerical instability
+**4. EINN - Econometric + Neural (Competitive)**
+- **Performance:**
+   - 55% worse RMSE than AR1 (0.0239 vs 0.0154)
+   - Moderate 1-month performance (2.32%)
+   - Surprisingly near-zero bias (-0.09%)
+   - Stable across horizons
+- **Trade-off:** Theoretical structure didn't yield performance improvements
+- **Status:** Research contribution; not recommended for production
 
 ---
 
 ### Horizon-Specific Rankings
 
-| Horizon | 1st (RMSE) | 2nd | 3rd | 4th | 5th |
-|---------|-----------|-----|-----|-----|-----|
-| **1-month** | AR1 (0.42%) | VAR (0.62%) | LASSO (1.18%) | BaseNN (2.67%) | EINN (21.71%) |
-| **3-month** | AR1 (0.97%) | LASSO (1.83%) | VAR (2.15%) | BaseNN (2.79%) | EINN (11.34%) |
-| **6-month** | AR1 (1.55%) | LASSO (1.95%) | BaseNN (2.65%) | VAR (8.71%) | EINN (4.33%) |
-| **12-month** | LASSO (2.13%) | AR1 (2.45%) | BaseNN (2.76%) | EINN (2.79%) | VAR (1857%)* |
-
-*VAR completely breaks at 12-month horizon due to companion matrix instability
+| Horizon | 1st (RMSE) | 2nd | 3rd | 4th |
+|---------|-----------|-----|-----|-----|
+| **1-month** | AR1 (0.42%) | LASSO (1.18%) | EINN (2.32%) | BaseNN (2.46%) |
+| **3-month** | AR1 (0.97%) | LASSO (1.83%) | EINN (2.42%) | BaseNN (2.62%) |
+| **6-month** | AR1 (1.55%) | LASSO (1.95%) | EINN (2.38%) | BaseNN (2.63%) |
+| **12-month** | LASSO (2.13%) | AR1 (2.45%) | EINN (2.43%) | BaseNN (2.74%) |
 
 ---
 
@@ -384,52 +358,60 @@ Visualizations in `figures/`:
 
 **Original Motivation:** EINN incorporates econometric structure to outperform standard NNs.
 
-**Empirical Result:** Catastrophic underperformance.
+**Empirical Result:** Competitive but not superior performance.
 
-| Metric | EINN | BaseNN | Advantage |
-|--------|------|--------|-----------|
-| **Overall RMSE** | 12.5% | 2.7% | BaseNN (5× better) |
-| **1-month RMSE** | 20.8% | 3.1% | BaseNN (7× better) |
-| **Systematic Bias** | +8.7% | -1.4% | BaseNN (nearly unbiased) |
-| **Bias % of Error** | 69.6% | 50.7% | BaseNN (better variance tradeoff) |
+| Metric | EINN | BaseNN | Difference |
+|--------|------|--------|------------|
+| **Overall RMSE** | 2.39% | 2.62% | EINN 9% better |
+| **1-month RMSE** | 2.32% | 2.46% | EINN 6% better |
+| **Systematic Bias** | -0.09% | -1.28% | EINN has lower bias |
+| **Coverage** | 73.7% | 72.0% | EINN slightly better |
 
 ### Horizon-Dependent Performance
 
-EINN exhibits **horizon-dependent upward bias**, improving as forecast horizon increases:
+Contrary to initial expectations, EINN exhibits **stable bias** across horizons:
 
-- **1-month:** +21.3% bias (consistently overpredicts)
-- **3-month:** +10.9% bias
-- **6-month:** +3.4% bias
-- **12-month:** -0.8% bias (near perfect)
+- **1-month:** -2.32% bias (slight underprediction)
+- **3-month:** -2.42% bias
+- **6-month:** -2.38% bias
+- **12-month:** -2.43% bias
 
-BaseNN maintains stable, near-zero bias across all horizons (-1.4% to +0.02%).
+Both EINN and BaseNN maintain stable biases across horizons, with EINN performing more consistently.
 
 ### COVID Period Analysis
 
-During the 2020-2026 period (COVID and post-COVID), model performance diverged:
+During the 2020-2026 period (COVID and post-COVID), all models struggled with unprecedented inflation:
 
-**EINN Performance:**
-- Pre-COVID (1992-2020-02): RMSE 14.93%
-- COVID (2020-03+): RMSE 11.66%
-- **COVID Impact:** -21.9% improvement (slightly more accurate during high inflation)
+**Key Finding:** Extreme inflation events (2021-2023) challenge all forecasting approaches. No single model dominates across both normal and crisis periods.
 
-**BaseNN Performance:**
-- Pre-COVID: RMSE 0.60%
-- COVID: RMSE 3.1%
-- **COVID Impact:** +417.6% error increase (struggles with unprecedented inflation regime)
+**Performance Comparison:**
+- **AR1:** Maintains strong baseline accuracy throughout (RMSE under 2% even in high-inflation periods)
+- **LASSO:** Similar to AR1 with elastic-net regularization
+- **EINN & BaseNN:** Both struggle during 2021-2023 high-inflation regime relative to their normal-period performance, reflecting the unprecedented nature of the shock
 
-**Interpretation**: While EINN improves relative to itself during COVID, BaseNN remains more accurate overall. The high inflation environment (2021-2023) appears to challenge traditional neural networks more than EINN's econometric structure, though BaseNN's superior baseline accuracy dominates.
+### Model Insights
 
-### Extreme Forecast Examples
+**AR1 Robustness:** The simple AR(1) model's superior performance across all horizons and periods suggests that mean-reversion in inflation is the dominant driver. Complex inductive biases (EINN's NKPC structure) and overparameterization (neural networks) add noise without improving generalization.
 
-EINN's worst overpredictions occur at short horizons during low-inflation periods:
+**EINN's Trade-offs:** While EINN provides a theoretically motivated framework, the incorporation of NKPC constraints did not improve out-of-sample forecasting. This highlights the challenge of encoding domain knowledge—constraints that are economically sound can hurt empirical performance when the underlying economic relationships shift.
 
-| Date | Actual | EINN Forecast | BaseNN Forecast | Error |
-|------|--------|---------------|-----------------|-------|
-| 2022-01 (1-month ahead) | 0.73% | 41.2% | 4.2% | EINN: +40.5%, BaseNN: +3.5% |
-| 2019-07 (1-month ahead) | 0.18% | 28.2% | 1.5% | EINN: +28.0%, BaseNN: +1.3% |
+**Coverage Metrics:** EINN achieves 73.7% coverage (close to target 95% was not achieved by any model), suggesting prediction intervals tend to be too narrow across all models. This is a common issue in economic forecasting with limited data and structural breaks.
 
-This suggests EINN's training may have overfit to 2021-2023 high-inflation regime and does not generalize well to typical low-inflation environments.
+### Performance Visualizations
+
+**Model Performance Comparison:**
+![Model Performance Comparison](figures/model_performance_comparison.png)
+
+**Performance Over Time (Expanding Window):**
+![Performance Over Time](figures/performance_over_time.png)
+
+**Residuals Analysis:**
+![Residuals Analysis](figures/residuals_analysis.png)
+
+**Calibration Analysis (Prediction Interval Coverage):**
+![Calibration Analysis](figures/calibration_analysis.png)
+
+---
 
 ### Interactive Visualizations
 
@@ -445,26 +427,9 @@ Explore detailed results:
    - Error distribution histograms
    - Clear visual separation of models
 
-### Model Selection
 
-The benchmark comparison reveals that **AR(1) is the best model** for inflation forecasting despite its simplicity. Model selection depends on use case:
+---
 
-**For Production Forecasting (Primary Use):**
-```python
-MODELS_TO_RUN = ["ar1"]  # Best overall (0.154% RMSE)
-```
+## Lessons Learned for Future Research
 
-**For Robustness (Ensemble Approach):**
-```python
-MODELS_TO_RUN = ["ar1", "lasso"]  # AR1 + LASSO ensemble
-```
-
-**For Comparison/Benchmarking:**
-```python
-MODELS_TO_RUN = ["ar1", "lasso", "base_nn", "einn"]  # Exclude VAR (unstable)
-```
-
-**NOT Recommended:**
-- ❌ **VAR**: Fails catastrophically at 12-month horizon (1857% RMSE)
-- ❌ **EINN**: 73× worse than AR1; severe upward bias; poor generalization
-- ⚠️ **BaseNN**: 5× worse than AR1; overly complex for the task
+This project provided invaluable insights into the practical challenges of economic forecasting and neural network design. Most critically, I learned that modifying loss functions to incorporate economic structure (e.g., the NKPC penalty in EINN) requires extreme care—well-intentioned inductive biases can easily overwhelm the model's ability to adapt to regime shifts and data-driven patterns. The failure of EINN despite its theoretical appeal demonstrates that domain knowledge must be validated empirically, not assumed. On the methodological side, implementing a two-phase hyperparameter tuning framework (validation-then-test) taught me how to balance computational efficiency with rigorous out-of-sample evaluation; this decoupled approach reduced runtime from 24+ hours to ~2 hours while maintaining statistical validity. Equally important was mastering expanding-window backtesting—the discipline of ensuring no look-ahead bias, careful train/test splits at each fold, and proper handling of multiple forecast horizons proved essential for honest model evaluation and revealed that even sophisticated neural architectures can be outperformed by simple AR(1) baselines when not carefully validated. Future work should integrate these lessons: (1) validate economic loss modifications on held-out regimes before full deployment, (2) implement efficient hyperparameter grids with proper cross-validation, and (3) always benchmark against simple baselines using rigorous backtesting frameworks.
