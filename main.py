@@ -1,3 +1,5 @@
+from zipp import Path
+
 from src.backtesting import run_backtest_from_csv, save_backtest_outputs
 from src.config import (
     ALPHA,
@@ -25,7 +27,8 @@ LOG_LEVEL = "INFO"
 def main() -> None:
     # Always pull and transform
     print("Pulling FRED data...")
-    #load_fred_data()
+    if not Path(CSV_PATH).exists():
+        load_fred_data()
 
     print("Transforming data...")
     transform_data()
